@@ -1,0 +1,47 @@
+name: Build mobile.pdf
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-mobile-pdf:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Concatenate source files
+        run: |
+          mkdir -p tmp
+          echo "" > tmp/mobile.tex
+          cat src/header_mobile.tex >> tmp/mobile.tex
+          cat src/content.tex >> tmp/mobile.tex
+          cat src/footer_mobile.tex >> tmp/mobile.tex
+
+      - name: Run uplatex
+        uses: addnab/docker-run-action@v3
+        with:
+          image: paperist/texlive-ja:latest
+          options: --rm -v ${{ github.workspace }}/tmp:/workdir
+          run: |
+            uplatex -interaction=nonstopmode -halt-on-error mobile.tex
+
+      - name: Run dvipdfmx
+        uses: addnab/docker-run-action@v3
+        with:
+          image: paperist/texlive-ja:latest
+          options: --rm -v ${{ github.workspace }}/tmp:/workdir
+          run: |
+            dvipdfmx mobile.dvi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile.pdf
+          path: tmp/mobile.pdf
